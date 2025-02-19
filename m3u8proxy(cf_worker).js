@@ -16,7 +16,7 @@ async function handleRequest(request) {
 
 const options = {
   originBlacklist: ["*"], // Replace with specific origins if needed
-  originWhitelist: ["https://xanime-xi.vercel.app"], // Add allowed origins if applicable
+  originWhitelist: ["https://xanime-m3u8proxy.vercel.app/"], // Add allowed origins if applicable
 };
 
 async function handleM3U8Proxy(request) {
