@@ -1,45 +1,37 @@
-!pip install flask requests
-from flask import Flask, jsonify, request
+from flask import Flask, request, render_template, jsonify
 import requests
-import re
 
 app = Flask(__name__)
 
-API_KEY = "0ccdf679d84ea59f72b1"
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-def extract_file_id(url):
-    """Extract the file ID from a given StreamTape URL"""
-    match = re.search(r'https://streamtape.com/v/([a-zA-Z0-9_-]+)', url)
-    if match:
-        return match.group(1)
-    return None
-
-def get_streamtape_link(file_id):
-    """Fetches a fresh direct link for the StreamTape file."""
-    url = f"https://api.streamtape.com/file/dlticket?file={file_id}&key={API_KEY}"
-    response = requests.get(url).json()
-
-    if response["status"] == 200:
-        ticket = response["result"]["ticket"]
-        direct_link = f"https://api.streamtape.com/file/dl?file={file_id}&ticket={ticket}"
-        return direct_link
-    return None
-
-@app.route('/get_video', methods=['GET'])
+@app.route('/get_video', methods=['POST'])
 def get_video():
-    """Returns a fresh StreamTape link based on the URL parameter."""
-    streamtape_url = request.args.get('url')
-    if not streamtape_url:
-        return jsonify({"error": "Missing 'url' parameter"}), 400
+    # Retrieve the API key and file ID from the form
+    api_key = request.form.get('api_key')
+    file_id = request.form.get('file_id')
     
-    file_id = extract_file_id(streamtape_url)
-    if not file_id:
-        return jsonify({"error": "Invalid StreamTape URL"}), 400
+    # Check if both API key and file ID are provided
+    if not api_key or not file_id:
+        return jsonify({"error": "API Key and File ID are required"}), 400
 
-    link = get_streamtape_link(file_id)
-    if link:
-        return jsonify({"stream_link": link})
-    return jsonify({"error": "Failed to get link"}), 400
+    # Construct the URL to get the direct link to the file
+    streamtape_api_url = f"https://api.streamtape.com/get_video?api_key={api_key}&file_id={file_id}"
 
-if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0')  # Run on all IP addresses of the device
+    # Make the API request to Streamtape
+    response = requests.get(streamtape_api_url)
+
+    if response.status_code == 200:
+        data = response.json()
+        if data.get('status') == 'ok' and 'file' in data:
+            # If the response is successful, return the direct video URL
+            return jsonify({"video_url": data['file']})
+        else:
+            return jsonify({"error": "Failed to retrieve video."}), 400
+    else:
+        return jsonify({"error": "Failed to contact Streamtape API."}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
