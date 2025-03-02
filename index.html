@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamtape Video Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .video-container {
+            max-width: 80%;
+            width: 640px;
+            text-align: center;
+        }
+        video {
+            width: 100%;
+            height: auto;
+            border: 2px solid #ccc;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+
+<div class="video-container">
+    <h1>Streamtape Video Player</h1>
+    <video controls id="videoPlayer">
+        <source id="videoSource" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <br><br>
+    <input type="text" id="streamtapeUrl" placeholder="Enter Streamtape video URL">
+    <button onclick="loadVideo()">Load Video</button>
+</div>
+
+<script>
+    // Function to load the video
+    async function loadVideo() {
+        const streamtapeUrl = document.getElementById('streamtapeUrl').value.trim();
+        
+        if (!streamtapeUrl) {
+            alert('Please enter a valid Streamtape video URL');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/get_video?url=${encodeURIComponent(streamtapeUrl)}`);
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+            } else {
+                // Update the video player source to the direct video URL
+                const videoPlayer = document.getElementById('videoPlayer');
+                const videoSource = document.getElementById('videoSource');
+                videoSource.src = data.video_url;
+                videoPlayer.load();
+            }
+        } catch (error) {
+            alert('Failed to load video. Please try again.');
+        }
+    }
+</script>
+
+</body>
+</html>
