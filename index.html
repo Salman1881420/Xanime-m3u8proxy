@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamtape Video Player</title>
+    <title>Streamtape Direct Link Generator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,59 +14,122 @@
             margin: 0;
             background-color: #f4f4f4;
         }
-        .video-container {
-            max-width: 80%;
-            width: 640px;
+        .container {
+            max-width: 600px;
             text-align: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"], input[type="password"] {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .result {
+            margin-top: 20px;
         }
         video {
             width: 100%;
+            max-width: 640px;
             height: auto;
-            border: 2px solid #ccc;
+            margin-top: 20px;
+            border: 1px solid #ccc;
             background-color: #000;
         }
     </style>
 </head>
 <body>
 
-<div class="video-container">
-    <h1>Streamtape Video Player</h1>
-    <video controls id="videoPlayer">
-        <source id="videoSource" type="video/mp4">
-        Your browser does not support the video tag.
-    </video>
-    <br><br>
-    <input type="text" id="streamtapeUrl" placeholder="Enter Streamtape video URL">
-    <button onclick="loadVideo()">Load Video</button>
+<div class="container">
+    <h1>Streamtape Direct Link Generator</h1>
+    <form id="form">
+        <input type="text" id="api_key" placeholder="Enter Streamtape API Key" required><br>
+        <input type="text" id="file_id" placeholder="Enter File ID" required><br>
+        <button type="submit">Generate Direct Link</button>
+    </form>
+    <div class="error" id="error-message"></div>
+    <div class="result" id="result"></div>
+    <div class="player-container" id="player-container" style="display: none;">
+        <h2>Video Player</h2>
+        <video id="videoPlayer" controls>
+            <source id="videoSource" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
 </div>
 
 <script>
-    // Function to load the video
-    async function loadVideo() {
-        const streamtapeUrl = document.getElementById('streamtapeUrl').value.trim();
+    // Event listener for form submission
+    document.getElementById('form').addEventListener('submit', async function(event) {
+        event.preventDefault();
         
-        if (!streamtapeUrl) {
-            alert('Please enter a valid Streamtape video URL');
+        const apiKey = document.getElementById('api_key').value.trim();
+        const fileId = document.getElementById('file_id').value.trim();
+        const errorMessage = document.getElementById('error-message');
+        const resultDiv = document.getElementById('result');
+        const playerContainer = document.getElementById('player-container');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoSource = document.getElementById('videoSource');
+        
+        errorMessage.innerHTML = '';  // Reset any previous errors
+        resultDiv.innerHTML = '';  // Reset any previous result
+        playerContainer.style.display = 'none';  // Hide the player initially
+
+        if (!apiKey || !fileId) {
+            errorMessage.innerHTML = 'API Key and File ID are required!';
             return;
         }
 
         try {
-            const response = await fetch(`/get_video?url=${encodeURIComponent(streamtapeUrl)}`);
+            // Make the POST request to Flask server
+            const response = await fetch('/get_video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    api_key: apiKey,
+                    file_id: fileId
+                })
+            });
+
             const data = await response.json();
 
-            if (data.error) {
-                alert(data.error);
-            } else {
-                // Update the video player source to the direct video URL
-                const videoPlayer = document.getElementById('videoPlayer');
-                const videoSource = document.getElementById('videoSource');
+            if (response.ok) {
+                // Display the direct video URL
+                resultDiv.innerHTML = `<p>Direct Video Link: <a href="${data.video_url}" target="_blank">${data.video_url}</a></p>`;
+                
+                // Show the video player
                 videoSource.src = data.video_url;
                 videoPlayer.load();
+                playerContainer.style.display = 'block'; // Show the player
+            } else {
+                // Display the error message
+                errorMessage.innerHTML = data.error || 'An unknown error occurred.';
             }
         } catch (error) {
-            alert('Failed to load video. Please try again.');
+            errorMessage.innerHTML = 'Failed to contact the server.';
         }
-    }
+    });
 </script>
 
 </body>
